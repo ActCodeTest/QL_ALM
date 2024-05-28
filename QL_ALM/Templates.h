@@ -4,147 +4,191 @@
 using namespace QuantLib;
 namespace ALM {
 
-	template<typename _type> 
-	struct BaseTemplate {};
-
-	//Base template to construct an instrument
-	template<typename _type>
-	struct StaticTemplate : public BaseTemplate<_type> {};
-
-	//Dynamic templates use valuation date to construct an instrument
-	template<typename _type>
-	struct DynamicTemplate : public BaseTemplate<_type> {};
-
-	//Base method to convert template into an object
-	template<typename _type>
-	inline boost::shared_ptr<_type> createFrom(const BaseTemplate<_type>& base_template) {
-		return boost::make_shared<_type>();
+	/* Schedule templates */
+	class ScheduleTemplate {
+	public:
+		virtual ~ScheduleTemplate() = default;
+		virtual boost::shared_ptr<QuantLib::Schedule> create() const = 0;
 	};
 
-	/* Schedules */
-
-	//Static Schedules
-	template<>
-	struct StaticTemplate<Schedule> {
-		Date effective_date_;
-		Date termination_date_;
-		Period duration_;
-		Period tenor_;
-		Calendar calendar_;
-		BusinessDayConvention convention_;
-		BusinessDayConvention termination_date_convention_;
-		DateGeneration::Rule rule_;
+	class StaticScheduleTemplate : public ScheduleTemplate {
+	private:
+		QuantLib::Date effective_date_;
+		QuantLib::Date termination_date_;
+		QuantLib::Period tenor_;
+		QuantLib::Calendar calendar_;
+		QuantLib::BusinessDayConvention convention_;
+		QuantLib::BusinessDayConvention termination_date_convention_;
+		QuantLib::DateGeneration::Rule rule_;
 		bool end_of_month_;
+
+	public:
+		StaticScheduleTemplate(const QuantLib::Date& effective_date,
+			const QuantLib::Date& termination_date,
+			const QuantLib::Period& tenor,
+			const QuantLib::Calendar& calendar,
+			QuantLib::BusinessDayConvention convention,
+			QuantLib::BusinessDayConvention termination_date_convention,
+			QuantLib::DateGeneration::Rule rule,
+			bool end_of_month)
+			: effective_date_(effective_date),
+			termination_date_(termination_date),
+			tenor_(tenor),
+			calendar_(calendar),
+			convention_(convention),
+			termination_date_convention_(termination_date_convention),
+			rule_(rule),
+			end_of_month_(end_of_month) {};
+
+		boost::shared_ptr<QuantLib::Schedule> create() const {
+			return boost::make_shared<QuantLib::Schedule>(
+				effective_date_, termination_date_, tenor_, calendar_,
+				convention_, termination_date_convention_, rule_, end_of_month_);
+		}
 	};
 
-	typedef StaticTemplate<Schedule> StaticScheduleTemplate;
-
-	inline boost::shared_ptr<Schedule> createFrom(const StaticScheduleTemplate& schedule_template) {
-		return boost::make_shared<Schedule>(
-			schedule_template.effective_date_,
-			schedule_template.termination_date_,
-			schedule_template.tenor_,
-			schedule_template.calendar_,
-			schedule_template.convention_,
-			schedule_template.termination_date_convention_,
-			schedule_template.rule_,
-			schedule_template.end_of_month_);
-	};
-
-	//Dynamic Schedules
-	template<>
-	struct DynamicTemplate<Schedule> {
-		Period duration_;
-		Period tenor_;
-		Calendar calendar_;
-		BusinessDayConvention convention_;
-		BusinessDayConvention termination_date_convention_;
-		DateGeneration::Rule rule_;
+	class DynamicScheduleTemplate : public ScheduleTemplate {
+	private:
+		QuantLib::Period duration_;
+		QuantLib::Period tenor_;
+		QuantLib::Calendar calendar_;
+		QuantLib::BusinessDayConvention convention_;
+		QuantLib::BusinessDayConvention termination_date_convention_;
+		QuantLib::DateGeneration::Rule rule_;
 		bool end_of_month_;
+
+	public:
+		DynamicScheduleTemplate(const QuantLib::Period& duration,
+			const QuantLib::Period& tenor,
+			const QuantLib::Calendar& calendar,
+			QuantLib::BusinessDayConvention convention,
+			QuantLib::BusinessDayConvention termination_date_convention,
+			QuantLib::DateGeneration::Rule rule,
+			bool end_of_month)
+			: duration_(duration),
+			tenor_(tenor),
+			calendar_(calendar),
+			convention_(convention),
+			termination_date_convention_(termination_date_convention),
+			rule_(rule),
+			end_of_month_(end_of_month) {};
+
+		boost::shared_ptr<QuantLib::Schedule> create() const {
+			return boost::make_shared<QuantLib::Schedule>(
+				Settings::instance().evaluationDate().value(), Settings::instance().evaluationDate().value() + duration_,
+				tenor_, calendar_, convention_, termination_date_convention_, rule_, end_of_month_);
+		}
 	};
 
-	typedef DynamicTemplate<Schedule> DynamicScheduleTemplate;
+	/* Yield curve templates */
 
-	inline boost::shared_ptr<Schedule> createFrom(const DynamicScheduleTemplate& schedule_template) {
-		return boost::make_shared<Schedule>(
-			Settings::instance().evaluationDate().value(),
-			Settings::instance().evaluationDate().value() + schedule_template.duration_,
-			schedule_template.tenor_,
-			schedule_template.calendar_,
-			schedule_template.convention_,
-			schedule_template.termination_date_convention_,
-			schedule_template.rule_,
-			schedule_template.end_of_month_);
+	class YieldTermStructureTemplate {
+		virtual ~YieldTermStructureTemplate() = default;
+		virtual boost::shared_ptr<YieldTermStructure> create() const = 0;
 	};
-
-	/* Flat Forward */
-	template<>
-	struct DynamicTemplate<FlatForward> {
+	
+	class StaticFlatForwardTemplate {
+	private:
+		Date reference_date_;
 		Rate forward_;
 		DayCounter day_counter_;
 		Compounding compounding_;
 		Frequency frequency_;
+	public:
+		StaticFlatForwardTemplate(const QuantLib::Date& reference_date,
+			QuantLib::Rate forward,
+			const QuantLib::DayCounter& day_counter,
+			QuantLib::Compounding compounding,
+			QuantLib::Frequency frequency)
+			: reference_date_(reference_date),
+			forward_(forward),
+			day_counter_(day_counter),
+			compounding_(compounding),
+			frequency_(frequency) {};
+
+		boost::shared_ptr<YieldTermStructure> create() {
+			return boost::make_shared<FlatForward>(reference_date_, forward_, day_counter_, compounding_, frequency_);
+		};
 	};
 
-	typedef DynamicTemplate<FlatForward> DynamicFlatForwardTemplate;
+	class DynamicFlatForwardTemplate {
+	private:
+		Rate forward_;
+		DayCounter day_counter_;
+		Compounding compounding_;
+		Frequency frequency_;
+	public:
+		DynamicFlatForwardTemplate(QuantLib::Rate forward,
+			const QuantLib::DayCounter& day_counter,
+			QuantLib::Compounding compounding,
+			QuantLib::Frequency frequency)
+			: forward_(forward),
+			day_counter_(day_counter),
+			compounding_(compounding),
+			frequency_(frequency) {};
 
-	inline boost::shared_ptr<FlatForward> createFrom(const DynamicFlatForwardTemplate& flat_forward_template) {
-		return boost::make_shared<FlatForward>(
-			Settings::instance().evaluationDate().value(),
-			flat_forward_template.forward_,
-			flat_forward_template.day_counter_,
-			flat_forward_template.compounding_,
-			flat_forward_template.frequency_
-		);
+		boost::shared_ptr<YieldTermStructure> create() {
+			return boost::make_shared<FlatForward>(Settings::instance().evaluationDate().value(), forward_, day_counter_, compounding_, frequency_);
+		};
 	};
 
+	/* Instrument Templates */
+	class InstrumentTemplate {
+	public:
+		virtual ~InstrumentTemplate() = default;
+		virtual boost::shared_ptr<QuantLib::Instrument> create() const = 0;
+	};
 
 	/* Fixed Rate Bonds */
 
-	//Static Fixed Rate Bonds
-	
-	template<>
-	struct StaticTemplate<FixedRateBond> {
+	class StaticFixedRateBondTemplate : public InstrumentTemplate {
+	private:
 		Natural settlement_days_;
 		Real face_amount_;
 		Schedule schedule_;
 		std::vector<Rate> coupons_;
 		DayCounter accrual_day_counter_;
+	public:
+		StaticFixedRateBondTemplate(QuantLib::Natural settlement_days,
+			QuantLib::Real face_amount,
+			const QuantLib::Schedule& schedule,
+			const std::vector<QuantLib::Rate>& coupons,
+			const QuantLib::DayCounter& accrual_day_counter)
+			: settlement_days_(settlement_days),
+			face_amount_(face_amount),
+			schedule_(schedule),
+			coupons_(coupons),
+			accrual_day_counter_(accrual_day_counter) {};
+
+		boost::shared_ptr<QuantLib::Instrument> create() const {
+			return boost::make_shared<FixedRateBond>(settlement_days_,face_amount_,	schedule_,	coupons_,accrual_day_counter_);
+		};
 	};
-
-	typedef StaticTemplate<FixedRateBond> StaticFixedRateBondTemplate;
-
-	inline boost::shared_ptr<FixedRateBond> createFrom(const StaticFixedRateBondTemplate& fixed_rate_bond_template) {
-		return boost::make_shared<FixedRateBond>(
-			fixed_rate_bond_template.settlement_days_,
-			fixed_rate_bond_template.face_amount_,
-			fixed_rate_bond_template.schedule_,
-			fixed_rate_bond_template.coupons_,
-			fixed_rate_bond_template.accrual_day_counter_);
-	};
-
-	//Dynamic Fixed Rate Bonds
 	
-	template<>
-	struct DynamicTemplate<FixedRateBond> {
+	class DynamicFixedRateBondTemplate : public InstrumentTemplate {
+	private:
 		Natural settlement_days_;
 		Real face_amount_;
-		DynamicScheduleTemplate schedule_;
+		DynamicScheduleTemplate schedule_template_;
 		std::vector<Rate> coupons_;
 		DayCounter accrual_day_counter_;
+	public:
+		DynamicFixedRateBondTemplate(QuantLib::Natural settlement_days,
+			QuantLib::Real face_amount,
+			const DynamicScheduleTemplate& schedule_template,
+			const std::vector<QuantLib::Rate>& coupons,
+			const QuantLib::DayCounter& accrual_day_counter)
+			: settlement_days_(settlement_days),
+			face_amount_(face_amount),
+			schedule_template_(schedule_template),
+			coupons_(coupons),
+			accrual_day_counter_(accrual_day_counter) {};
+
+		boost::shared_ptr<QuantLib::Instrument> create() const {
+			return boost::make_shared<FixedRateBond>(settlement_days_, face_amount_, *schedule_template_.create(), coupons_, accrual_day_counter_);
+		};
 	};
-	
-	typedef DynamicTemplate<FixedRateBond> DynamicFixedRateBondTemplate;
-	
-	inline boost::shared_ptr<FixedRateBond> createFrom(const DynamicFixedRateBondTemplate& fixed_rate_bond_template) {
-		return boost::make_shared<FixedRateBond>(
-			fixed_rate_bond_template.settlement_days_,
-			fixed_rate_bond_template.face_amount_,
-			(*createFrom(fixed_rate_bond_template.schedule_)),
-			fixed_rate_bond_template.coupons_,
-			fixed_rate_bond_template.accrual_day_counter_);
-	};
-	
+
 	/* OTHER CLASSES ?? */
 
 };

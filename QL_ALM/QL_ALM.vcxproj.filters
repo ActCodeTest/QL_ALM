@@ -35,5 +35,8 @@
     <ClInclude Include="ALMIncludes.h">
       <Filter>Header Files\ALM</Filter>
     </ClInclude>
+    <ClInclude Include="Projection.h">
+      <Filter>Header Files\ALM</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

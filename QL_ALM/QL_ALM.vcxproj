@@ -147,6 +147,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ALMIncludes.h" />
+    <ClInclude Include="Projection.h" />
     <ClInclude Include="Strategy.h" />
     <ClInclude Include="Templates.h" />
     <ClInclude Include="Portfolio.h" />
