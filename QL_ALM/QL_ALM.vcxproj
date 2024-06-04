@@ -146,11 +146,15 @@
     <ClCompile Include="Main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ALMIncludes.h" />
-    <ClInclude Include="Projection.h" />
-    <ClInclude Include="Strategy.h" />
-    <ClInclude Include="Templates.h" />
+    <ClInclude Include="HelperFunctions.h" />
+    <ClInclude Include="FixedRateBondEngine.h" />
+    <ClInclude Include="FixedReinvestment.h" />
+    <ClInclude Include="InvestmentStrategy.h" />
     <ClInclude Include="Portfolio.h" />
+    <ClInclude Include="InstrumentEngine.h" />
+    <ClInclude Include="PortfolioProjection.h" />
+    <ClInclude Include="ProRataDisinvestment.h" />
+    <ClInclude Include="ScaledInstrument.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

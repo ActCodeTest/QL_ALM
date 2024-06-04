@@ -1,63 +1,127 @@
-
-#include <ql/quantlib.hpp>
 #include <Eigen/dense>
-#include "ALMIncludes.h"
-
-using namespace QuantLib;
+#include <ql/quantlib.hpp>
+#include <iostream>
+#include "FixedRateBondEngine.h"
+#include "Portfolio.h"
+#include "PortfolioProjection.h"
+#include "FixedReinvestment.h"
+#include "ProRataDisinvestment.h"
 int main() {
+    using namespace QuantLib;
+    using namespace ALM;
 
-    //Setting the valuation date to Jan 31, 2024.
-    Settings::instance().evaluationDate() = Date(31, Jan, 2024);
+    //Sample discount curve
+    Settings::instance().evaluationDate() = Date(31, Dec, 2024);
+    Handle<YieldTermStructure> discount_curve(boost::make_shared<FlatForward>(0, TARGET(), 0.03, Actual365Fixed()));
 
-    //Initializing a template to create yield curves at the valuation date.
-    ALM::DynamicFlatForwardTemplate flat_forward_template(
-        Rate(0.04),
-        ActualActual(ActualActual::Actual365),
-        Compounded,
-        Semiannual);
-
-    //Initializing a yield curve using the template. Time zero will be the valuation date.
-    RelinkableHandle<YieldTermStructure> yield_curve(flat_forward_template.create());
-
-    //Initializing a template to create 10-year fixed bond coupon schedules at the valuation date.
-    ALM::DynamicScheduleTemplate schedule_10Y_template(
-        Period(10, Years),
-        Period(6, Months),
+    //Sample reinvestment strategies
+    auto bond_a = boost::make_shared<FixedRateBondEngine>(
+        Period(3, Years),
+        0.03,
         TARGET(),
+        ActualActual(ActualActual::Bond),
         Unadjusted,
-        Unadjusted,
-        DateGeneration::Backward,
-        false);
+        discount_curve);
 
-    ALM::DynamicFixedRateBondTemplate fixed_bond_template(
-        Natural(0),
-        Real(100.0),
-        schedule_10Y_template,
-        { Rate(0.05) },
-        ActualActual(ActualActual::Actual365)
+    auto re_strategy_a = boost::make_shared<FixedReinvestment>();
+    re_strategy_a->add(std::make_pair(1, bond_a));
+
+    auto bond_b = boost::make_shared<FixedRateBondEngine>(
+        Period(5, Years),
+        0.035,
+        TARGET(),
+        ActualActual(ActualActual::Bond),
+        Unadjusted,
+        discount_curve);
+
+    auto re_strategy_b = boost::make_shared<FixedReinvestment>();
+    re_strategy_b->add(std::make_pair(1, bond_b));
+
+    auto bond_c = boost::make_shared< FixedRateBondEngine>(
+        Period(10, Years),
+        0.04,
+        TARGET(),
+        ActualActual(ActualActual::Bond),
+        Unadjusted,
+        discount_curve);
+
+    auto liab = boost::make_shared<FixedRateBondEngine>(
+        Period(15, Years),
+        0.02,
+        TARGET(),
+        ActualActual(ActualActual::Bond),
+        Unadjusted,
+        discount_curve);
+
+    auto re_strategy_c = boost::make_shared<FixedReinvestment>();
+    re_strategy_c->add(std::make_pair(1, bond_c));
+
+    //Sample disinvestment strategy
+    auto dis_strategy = boost::make_shared<ProRataDisinvestment>();
+
+    // Create a fixed rate bond with a target price
+    auto asset_portfolio_a = boost::make_shared<Portfolio>();
+    auto asset_portfolio_b = boost::make_shared<Portfolio>();
+    auto asset_portfolio_c = boost::make_shared<Portfolio>();
+
+    auto liability_portfolio = boost::make_shared<Portfolio>();
+    liability_portfolio->addInstrument(boost::make_shared<ScaledInstrument>(liab->create(1000)));
+
+
+    PortfolioProjection proj_a(
+        asset_portfolio_a,
+        liability_portfolio,
+        1000,
+        re_strategy_a,
+        dis_strategy
     );
 
-    ALM::Portfolio portfolio;
+    PortfolioProjection proj_b(
+        asset_portfolio_b,
+        liability_portfolio,
+        1000,
+        re_strategy_b,
+        dis_strategy
+    );
+
+    PortfolioProjection proj_c(
+        asset_portfolio_c,
+        liability_portfolio,
+        1000,
+        re_strategy_c,
+        dis_strategy
+    );
+
+
+    proj_a.project(Date(31, Dec, 2024), Date(31, Dec, 2054), Period(1, Months));
+    proj_b.project(Date(31, Dec, 2024), Date(31, Dec, 2054), Period(1, Months));
+    proj_c.project(Date(31, Dec, 2024), Date(31, Dec, 2054), Period(1, Months));
+
+    auto cash_a = proj_a.getData(PortfolioProjection::CASH);
+    auto cash_b = proj_b.getData(PortfolioProjection::CASH);
+    auto cash_c = proj_c.getData(PortfolioProjection::CASH);
+    auto asset_cf_a = proj_a.getData(PortfolioProjection::ASSET_CF);
+    auto asset_cf_b = proj_b.getData(PortfolioProjection::ASSET_CF);
+    auto asset_cf_c = proj_c.getData(PortfolioProjection::ASSET_CF);
+    auto liab_cf = proj_a.getData(PortfolioProjection::LIABILITY_CF);
+
     
-    auto sample_bond = boost::make_shared<ALM::CashflowInstrument<FixedRateBond>>(boost::dynamic_pointer_cast<FixedRateBond>(fixed_bond_template.create()), Real(1));
-    sample_bond->instrument()->setPricingEngine(boost::make_shared<DiscountingBondEngine>(yield_curve));
-    //portfolio.addInstrument(sample_bond);
+    Eigen::Matrix<double, 360, 3> A;
+    Eigen::Matrix<double, 360, 1> B;
+    for (auto i = 0; i < asset_cf_a.size(); i++) {
+        A(i, 0) = asset_cf_a[i].second + cash_a[i].second;
+        A(i, 1) = asset_cf_b[i].second + cash_b[i].second;
+        A(i, 2) = asset_cf_c[i].second + cash_c[i].second;
+        B(i, 0) = liab_cf[i].second;
+    }
 
-    auto ptr_test = boost::make_shared<ALM::DynamicFixedRateBondTemplate>(fixed_bond_template);
-    std::vector<std::pair<boost::shared_ptr<ALM::InstrumentTemplate>, Real>> instrument_templates;
-    instrument_templates.emplace_back(std::make_pair(ptr_test, Real(1)));
+    Eigen::Matrix<double, 3, 1> X = A.colPivHouseholderQr().solve(B);
+    //std::cout << A << "\n\n";
+    //std::cout << B << "\n\n";
+    std::cout << X << "\n\n";
+    std::cout << X / X.sum();
 
-    ALM::FixedRateBondReinvestment strategy(instrument_templates, yield_curve);
-    
-    strategy.applyTo(portfolio, 1000);
-    
-
-    Settings::instance().evaluationDate() = Settings::instance().evaluationDate().value() + Period(1, Years);
-    yield_curve.linkTo(flat_forward_template.create());
-
-    Settings::instance().evaluationDate() = Settings::instance().evaluationDate().value() + Period(1, Years);
-    yield_curve.linkTo(flat_forward_template.create());
-
-    std::cout << portfolio.NPV();
     return 0;
+
+
 };

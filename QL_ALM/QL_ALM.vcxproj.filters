@@ -13,8 +13,23 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="Header Files\ALM">
-      <UniqueIdentifier>{55d06a4f-f01a-4332-9ba3-6ab7291ab118}</UniqueIdentifier>
+    <Filter Include="Optimization">
+      <UniqueIdentifier>{5fc57124-dbde-4686-9c69-0fa839fe7036}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Engines">
+      <UniqueIdentifier>{3851d4cb-b4d4-47f4-9c78-f733cd17a499}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Portfolio">
+      <UniqueIdentifier>{1962c3ad-2b88-4db4-bdaa-fd35bec63747}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Portfolio\Strategy">
+      <UniqueIdentifier>{4c7eadf1-e959-486d-99ff-ccea816f205d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Portfolio\Projection">
+      <UniqueIdentifier>{51ec9133-a42c-48fb-a7fb-a5f25d0ed188}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Misc">
+      <UniqueIdentifier>{496a2a29-3a8f-4ba6-8e8f-cff4abfc053a}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -23,20 +38,32 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Templates.h">
-      <Filter>Header Files\ALM</Filter>
+    <ClInclude Include="InstrumentEngine.h">
+      <Filter>Header Files\Engines</Filter>
     </ClInclude>
-    <ClInclude Include="Strategy.h">
-      <Filter>Header Files\ALM</Filter>
+    <ClInclude Include="FixedRateBondEngine.h">
+      <Filter>Header Files\Engines</Filter>
     </ClInclude>
     <ClInclude Include="Portfolio.h">
-      <Filter>Header Files\ALM</Filter>
+      <Filter>Header Files\Portfolio</Filter>
     </ClInclude>
-    <ClInclude Include="ALMIncludes.h">
-      <Filter>Header Files\ALM</Filter>
+    <ClInclude Include="ScaledInstrument.h">
+      <Filter>Header Files\Portfolio</Filter>
     </ClInclude>
-    <ClInclude Include="Projection.h">
-      <Filter>Header Files\ALM</Filter>
+    <ClInclude Include="InvestmentStrategy.h">
+      <Filter>Header Files\Portfolio\Strategy</Filter>
+    </ClInclude>
+    <ClInclude Include="FixedReinvestment.h">
+      <Filter>Header Files\Portfolio\Strategy</Filter>
+    </ClInclude>
+    <ClInclude Include="ProRataDisinvestment.h">
+      <Filter>Header Files\Portfolio\Strategy</Filter>
+    </ClInclude>
+    <ClInclude Include="PortfolioProjection.h">
+      <Filter>Header Files\Portfolio\Projection</Filter>
+    </ClInclude>
+    <ClInclude Include="HelperFunctions.h">
+      <Filter>Header Files\Misc</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
